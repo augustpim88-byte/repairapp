@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fix-It Fast | แจ้งซ่อมด่วน</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body class="bg-gray-100 font-sans mb-20">
+
+    <nav class="bg-slate-800 text-white p-4 shadow-lg sticky top-0 z-10">
+        <div class="max-w-md mx-auto flex items-center gap-3">
+            <i class="fas fa-wrench text-xl"></i>
+            <h1 class="text-xl font-bold">Fix-It Fast</h1>
+        </div>
+    </nav>
+
+    <main class="max-w-md mx-auto p-4">
+        <form id="repairForm" class="bg-white rounded-2xl shadow-sm p-6 space-y-6">
+            <h2 class="text-lg font-semibold text-gray-700 border-b pb-2">แจ้งซ่อมอุปกรณ์ชำรุด</h2>
+
+            <div class="space-y-2">
+                <label class="block text-sm font-medium text-gray-600">ถ่ายรูปภาพ / วิดีโอ</label>
+                <label for="fileInput" class="border-2 border-dashed border-gray-300 rounded-xl p-6 flex flex-col items-center justify-center bg-gray-50 hover:bg-gray-100 cursor-pointer transition">
+                    <i class="fas fa-camera text-3xl text-blue-500 mb-2"></i>
+                    <span id="fileNameDisplay" class="text-sm text-gray-500 text-center">กดเพื่อเลือกรูปภาพ</span>
+                    <img id="imagePreview" class="hidden mt-2 rounded-lg max-h-32 shadow-sm">
+                    <input type="file" id="fileInput" accept="image/*" class="hidden">
+                </label>
+            </div>
+
+            <div class="space-y-2">
+                <label class="block text-sm font-medium text-gray-600">ประเภทอุปกรณ์</label>
+                <select id="category" name="category" required class="w-full p-3 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="">เลือกประเภท...</option>
+                    <option value="ระบบประปา">ระบบประปา</option>
+                    <option value="ระบบไฟฟ้า">ระบบไฟฟ้า</option>
+                    <option value="เครื่องปรับอากาศ">เครื่องปรับอากาศ</option>
+                    <option value="เฟอร์นิเจอร์">เฟอร์นิเจอร์ / โครงสร้าง</option>
+                </select>
+            </div>
+
+            <div class="space-y-2">
+                <label class="block text-sm font-medium text-gray-600">สถานที่ / เลขห้อง</label>
+                <input type="text" id="location" name="location" required placeholder="ระบุตำแหน่งที่พบปัญหา" class="w-full p-3 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500">
+            </div>
+
+            <div class="space-y-2">
+                <label class="block text-sm font-medium text-gray-600">ระดับความเร่งด่วน</label>
+                <div class="grid grid-cols-3 gap-2" id="priorityGroup">
+                    <button type="button" onclick="setPriority('ปกติ')" class="priority-btn py-2 px-4 border rounded-lg text-sm bg-blue-50 border-blue-500 text-blue-600 font-medium">ปกติ</button>
+                    <button type="button" onclick="setPriority('ด่วน')" class="priority-btn py-2 px-4 border rounded-lg text-sm text-gray-600 hover:bg-gray-50">ด่วน</button>
+                    <button type="button" onclick="setPriority('ด่วนมาก')" class="priority-btn py-2 px-4 border rounded-lg text-sm text-gray-600 hover:bg-gray-50 hover:text-red-500">ด่วนมาก</button>
+                </div>
+                <input type="hidden" id="priority" name="priority" value="ปกติ">
+            </div>
+
+            <div class="space-y-2">
+                <label class="block text-sm font-medium text-gray-600">รายละเอียดเพิ่มเติม</label>
+                <textarea id="details" name="details" rows="3" placeholder="อธิบายอาการเสียเบื้องต้น..." class="w-full p-3 bg-gray-50 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+            </div>
+
+            <button type="submit" id="submitBtn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-xl shadow-md transition transform active:scale-95">
+                ส่งข้อมูลแจ้งซ่อม
+            </button>
+        </form>
+    </main>
+
+    <div class="fixed bottom-0 left-0 right-0 bg-white border-t flex justify-around p-3 text-gray-400">
+        <i class="fas fa-home text-blue-600 cursor-pointer"></i>
+        <i class="fas fa-list-ul cursor-pointer"></i>
+        <i class="fas fa-bell cursor-pointer"></i>
+        <i class="fas fa-user cursor-pointer"></i>
+    </div>
+
+    <script>
+        const scriptURL = 'https://script.google.com/macros/s/AKfycbxf3cIxPsq6Z71uKGjXe6UWh5y2hEiFSbEEjcjIBJqJvQl8zMVFKqfDKNZQCJbFSb7IFA/exec'; 
+        const form = document.getElementById('repairForm');
+        const fileInput = document.getElementById('fileInput');
+        const preview = document.getElementById('imagePreview');
+        const fileNameDisplay = document.getElementById('fileNameDisplay');
+        
+        let currentPriority = 'ปกติ';
+        let base64Image = "";
+
+        // ฟังก์ชันแสดงพรีวิวรูปภาพ
+        fileInput.addEventListener('change', function() {
+            const file = this.files[0];
+            if (file) {
+                const reader = new FileReader();
+                fileNameDisplay.innerText = file.name;
+                reader.onload = function(e) {
+                    base64Image = e.target.result;
+                    preview.src = e.target.result;
+                    preview.classList.remove('hidden');
+                }
+                reader.readAsDataURL(file);
+            }
+        });
+
+        function setPriority(level) {
+            currentPriority = level;
+            document.getElementById('priority').value = level;
+            const buttons = document.querySelectorAll('.priority-btn');
+            buttons.forEach(btn => {
+                btn.classList.remove('bg-blue-50', 'border-blue-500', 'text-blue-600', 'font-medium');
+                btn.classList.add('text-gray-600');
+                if(btn.innerText === level) {
+                    btn.classList.add('bg-blue-50', 'border-blue-500', 'text-blue-600', 'font-medium');
+                }
+            });
+        }
+
+        form.addEventListener('submit', e => {
+            e.preventDefault();
+            const submitBtn = document.getElementById('submitBtn');
+            submitBtn.disabled = true;
+            submitBtn.innerText = "กำลังอัปโหลดรูปและส่งข้อมูล...";
+
+            // เตรียมข้อมูลส่งแบบ URL Parameters
+            const formData = new URLSearchParams();
+            formData.append('category', document.getElementById('category').value);
+            formData.append('location', document.getElementById('location').value);
+            formData.append('priority', document.getElementById('priority').value);
+            formData.append('details', document.getElementById('details').value);
+            
+            if(base64Image) {
+                formData.append('fileData', base64Image);
+                formData.append('fileName', fileInput.files[0].name);
+            }
+
+            fetch(scriptURL, { 
+                method: 'POST', 
+                body: formData.toString(),
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+            })
+            .then(response => {
+                alert('แจ้งซ่อมพร้อมส่งรูปภาพสำเร็จ!');
+                form.reset();
+                preview.classList.add('hidden');
+                fileNameDisplay.innerText = "กดเพื่อเลือกรูปภาพ";
+                base64Image = "";
+                setPriority('ปกติ');
+                submitBtn.disabled = false;
+                submitBtn.innerText = "ส่งข้อมูลแจ้งซ่อม";
+            })
+            .catch(error => {
+                console.error('Error!', error.message);
+                alert('เกิดข้อผิดพลาดในการส่งข้อมูล');
+                submitBtn.disabled = false;
+                submitBtn.innerText = "ส่งข้อมูลแจ้งซ่อม";
+            });
+        });
+    </script>
+</body>
+</html>
